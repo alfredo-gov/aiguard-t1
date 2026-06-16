@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIGuard T1 — Risk Report</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f1117;color:#e0e0e0}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:.875rem 1.5rem;border-bottom:0.5px solid #2a2d3a}
+.topbar-title{font-size:17px;font-weight:500;color:#fff}
+.topbar-sub{font-size:11px;color:#555;margin-top:2px}
+.status{display:flex;align-items:center;gap:6px;font-size:12px;color:#5dcaa5}
+.pulse{width:7px;height:7px;border-radius:50%;background:#5dcaa5;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.tabs{display:flex;padding:0 1.5rem;border-bottom:0.5px solid #2a2d3a}
+.tab{padding:.7rem 1.1rem;font-size:12px;cursor:pointer;color:#555;border-bottom:2px solid transparent;transition:all .15s}
+.tab.active{color:#5dcaa5;border-bottom-color:#5dcaa5}
+.tab:hover{color:#aaa}
+.view{display:none;padding:1.1rem 1.5rem}
+.view.active{display:block}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem}
+.metric{background:#1a1d27;border-radius:8px;padding:.8rem 1rem;border:0.5px solid #2a2d3a}
+.metric-label{font-size:10px;color:#555;margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px}
+.metric-value{font-size:22px;font-weight:500}
+.metric-value.ok{color:#5dcaa5}
+.metric-value.warn{color:#f0997b}
+.metric-value.danger{color:#e24b4a}
+.metric-sub{font-size:10px;color:#444;margin-top:2px}
+.card{background:#1a1d27;border-radius:10px;padding:.9rem 1.1rem;border:0.5px solid #2a2d3a;margin-bottom:8px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;gap:8px;flex-wrap:wrap}
+.card-title{font-size:10px;font-weight:500;color:#555;text-transform:uppercase;letter-spacing:.6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.grid3{display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px}
+.badge{display:inline-flex;align-items:center;font-size:10px;padding:2px 6px;border-radius:20px;font-weight:600}
+.badge-critical{background:#3d1a1a;color:#e24b4a}
+.badge-high{background:#3d2a1a;color:#f0997b}
+.badge-medium{background:#1a2d3d;color:#85b7eb}
+.badge-low{background:#1a3d2a;color:#5dcaa5}
+.badge-shadow{background:#3d1a3d;color:#d485eb}
+.badge-auth{background:#1a3d2a;color:#5dcaa5}
+.badge-monitored{background:#2a2d1a;color:#c5c57a}
+.provider-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid #1f2233;font-size:12px}
+.provider-row:last-child{border-bottom:none}
+.pbar-wrap{flex:2;height:3px;background:#252838;border-radius:2px}
+.pbar{height:3px;border-radius:2px}
+.pbar.shadow{background:#d485eb}
+.pbar.auth{background:#5dcaa5}
+.pbar.monitored{background:#c5c57a}
+.row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid #1f2233;font-size:11px}
+.row:last-child{border-bottom:none}
+.shadow-warning{background:#1f1a2e;border:0.5px solid #3d1a3d;border-radius:8px;padding:.7rem 1rem;margin-bottom:8px;font-size:11px;color:#d485eb}
+.compliance-tag{display:inline-flex;font-size:9px;padding:1px 5px;border-radius:3px;background:#2a1a1a;color:#e24b4a;margin-left:3px}
+.filters{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+select{background:#252838;color:#e0e0e0;border:0.5px solid #3a3d4a;border-radius:5px;padding:4px 8px;font-size:11px;cursor:pointer}
+select:focus{outline:none;border-color:#5dcaa5}
+.btn-primary{background:#0078d4;color:#fff;border:none;padding:5px 12px;border-radius:5px;font-size:11px;cursor:pointer}
+.btn-primary:hover{background:#006cbe}
+.btn-export{background:#1a3d2a;color:#5dcaa5;border:0.5px solid #2a5a3a;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer}
+.btn-export:hover{background:#1f4d32}
+.empty{color:#444;font-size:12px;padding:.75rem 0}
+.hist-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
+.hist-day{background:#1f2233;border-radius:4px;padding:6px 4px;text-align:center}
+.hist-day-label{font-size:9px;color:#555;margin-bottom:4px}
+.hist-day-val{font-size:13px;font-weight:500;color:#5dcaa5}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">AIGuard T1</div>
+    <div class="topbar-sub" id="generated">Loading...</div>
+  </div>
+  <div class="status"><div class="pulse"></div>Live</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('executive')">Executive</div>
+  <div class="tab" onclick="switchTab('operational')">Operational</div>
+  <div class="tab" onclick="switchTab('historical')">Historical</div>
+</div>
+
+<div id="view-executive" class="view active">
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">Total Connections</div><div class="metric-value ok" id="ex-total">—</div></div>
+    <div class="metric"><div class="metric-label">Data Volume</div><div class="metric-value ok" id="ex-volume">—</div></div>
+    <div class="metric"><div class="metric-label">AI Providers</div><div class="metric-value warn" id="ex-providers">—</div><div class="metric-sub" id="ex-shadow-count"></div></div>
+    <div class="metric"><div class="metric-label">DLP Findings</div><div class="metric-value danger" id="ex-dlp">—</div></div>
+  </div>
+  <div id="shadow-warning" class="shadow-warning" style="display:none">⚠ Unauthorized AI providers detected. These services have not been approved by IT policy.</div>
+  <div class="grid3">
+    <div class="card">
+      <div class="card-header"><div class="card-title">AI Providers Detected</div></div>
+      <div id="ex-providers-list"><div class="empty">No data</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Top Risk VLANs</div></div>
+      <div id="ex-vlans"><div class="empty">No data</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">DLP Alerts</div>
+      <div class="filters">
+        <select id="ex-filter-dept" onchange="loadExecutive()"><option value="">All departments</option></select>
+        <select id="ex-filter-sev" onchange="loadExecutive()">
+          <option value="">All severities</option>
+          <option value="CRITICAL">Critical</option>
+          <option value="HIGH">High</option>
+          <option value="MEDIUM">Medium</option>
+        </select>
+        <button class="btn-export" onclick="exportDLP()">Export CSV</button>
+      </div>
+    </div>
+    <div id="ex-dlp-list"><div class="empty">No alerts</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Analyze with Microsoft Copilot</div>
+      <button class="btn-primary" onclick="openCopilot()">Open Copilot</button>
+    </div>
+    <div style="font-size:11px;color:#444">Copies the security context to clipboard and opens Microsoft Copilot for AI-assisted risk analysis.</div>
+  </div>
+</div>
+
+<div id="view-operational" class="view">
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">Total Connections</div><div class="metric-value ok" id="op-total">—</div></div>
+    <div class="metric"><div class="metric-label">Data Volume</div><div class="metric-value ok" id="op-volume">—</div></div>
+    <div class="metric"><div class="metric-label">Active Providers</div><div class="metric-value warn" id="op-providers">—</div></div>
+    <div class="metric"><div class="metric-label">DLP Findings</div><div class="metric-value danger" id="op-dlp">—</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Live Event Feed</div>
+      <div class="filters">
+        <select id="op-filter-dept" onchange="loadOperational()"><option value="">All departments</option></select>
+        <select id="op-filter-prov" onchange="loadOperational()">
+          <option value="">All providers</option>
+          <option value="google_gemini">Google Gemini</option>
+          <option value="ms_copilot">MS Copilot</option>
+          <option value="anthropic">Anthropic</option>
+          <option value="xai_grok">Grok</option>
+          <option value="mistral">Mistral</option>
+          <option value="huggingface">HuggingFace</option>
+          <option value="openai">OpenAI</option>
+          <option value="deepseek">DeepSeek</option>
+        </select>
+        <button class="btn-export" onclick="exportEvents()">Export CSV</button>
+      </div>
+    </div>
+    <div id="op-events"><div class="empty">No events</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Top Source IPs</div></div>
+      <div id="op-top-ips"><div class="empty">No data</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Activity by VLAN</div></div>
+      <div id="op-vlans"><div class="empty">No data</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="view-historical" class="view">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Activity — Last 7 Days</div>
+      <div class="filters">
+        <select id="hist-filter-dept" onchange="loadHistorical()"><option value="">All departments</option></select>
+      </div>
+    </div>
+    <div id="hist-chart"><div class="empty">No historical data yet</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">Provider Breakdown</div></div>
+    <div id="hist-providers"><div class="empty">No data</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Full Event History</div>
+      <div class="filters">
+        <select id="hist-filter-dept2" onchange="loadHistorical()"><option value="">All departments</option></select>
+        <select id="hist-filter-prov" onchange="loadHistorical()">
+          <option value="">All providers</option>
+          <option value="google_gemini">Google Gemini</option>
+          <option value="ms_copilot">MS Copilot</option>
+          <option value="anthropic">Anthropic</option>
+          <option value="xai_grok">Grok</option>
+          <option value="mistral">Mistral</option>
+          <option value="huggingface">HuggingFace</option>
+          <option value="openai">OpenAI</option>
+          <option value="deepseek">DeepSeek</option>
+        </select>
+        <button class="btn-export" onclick="exportHistory()">Export CSV</button>
+      </div>
+    </div>
+    <div id="hist-events"><div class="empty">No data</div></div>
+  </div>
+</div>
+
+<script>
+const SHADOW_AI=['xai_grok','mistral','huggingface','you_ai','poe','character_ai','deepseek','groq','perplexity','cohere','meta_ai'];
+const AUTHORIZED=['ms_copilot','google_gemini'];
+function isShadow(p){return SHADOW_AI.includes(p);}
+function isAuth(p){return AUTHORIZED.includes(p);}
+function provBadge(p){
+  if(isShadow(p)) return '<span class="badge badge-shadow">SHADOW</span>';
+  if(isAuth(p)) return '<span class="badge badge-auth">AUTH</span>';
+  return '<span class="badge badge-monitored">MON</span>';
+}
+function sevBadge(s){return `<span class="badge badge-${(s||'medium').toLowerCase()}">${s||'MED'}</span>`;}
+function fmtVol(b){if(!b)return'0 KB';if(b>1048576)return(b/1048576).toFixed(1)+' MB';return(b/1024).toFixed(1)+' KB';}
+function fmtTS(ts){return new Date(ts).toLocaleString();}
+function fmtTime(ts){return new Date(ts).toLocaleTimeString();}
+
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach((el,i)=>{
+    el.classList.toggle('active',(i===0&&t==='executive')||(i===1&&t==='operational')||(i===2&&t==='historical'));
+  });
+  ['executive','operational','historical'].forEach(v=>{
+    document.getElementById('view-'+v).classList.toggle('active',v===t);
+  });
+  if(t==='historical') loadHistorical();
+}
+
+async function populateDepts(depts){
+  ['ex-filter-dept','op-filter-dept','hist-filter-dept','hist-filter-dept2'].forEach(id=>{
+    const sel=document.getElementById(id);
+    const cur=sel.value;
+    while(sel.options.length>1) sel.remove(1);
+    depts.forEach(d=>{
+      const o=document.createElement('option');
+      o.value=d.department;
+      o.text=d.department+(d.vlan_id?` (VLAN ${d.vlan_id})`:'');
+      sel.appendChild(o);
+    });
+    sel.value=cur;
+  });
+}
+
+async function loadExecutive(){
+  try{
+    const s=await fetch('/api/summary').then(r=>r.json());
+    document.getElementById('generated').textContent='Generated: '+new Date(s.generated).toLocaleString();
+    const shP=(s.providers||[]).filter(p=>isShadow(p.provider));
+    document.getElementById('ex-total').textContent=(s.total||0).toLocaleString();
+    document.getElementById('ex-volume').textContent=fmtVol(s.volume);
+    document.getElementById('ex-providers').textContent=s.providers.length;
+    document.getElementById('ex-shadow-count').textContent=shP.length+' unauthorized';
+    document.getElementById('ex-dlp').textContent=(s.dlp_count||0).toLocaleString();
+    document.getElementById('op-total').textContent=(s.total||0).toLocaleString();
+    document.getElementById('op-volume').textContent=fmtVol(s.volume);
+    document.getElementById('op-providers').textContent=s.providers.length;
+    document.getElementById('op-dlp').textContent=(s.dlp_count||0).toLocaleString();
+    document.getElementById('shadow-warning').style.display=shP.length>0?'block':'none';
+    const maxC=s.providers[0]?.connections||1;
+    document.getElementById('ex-providers-list').innerHTML=s.providers.length?
+      s.providers.map(p=>`<div class="provider-row">
+        <div style="flex:1;font-weight:500">${p.provider}</div>${provBadge(p.provider)}
+        <div class="pbar-wrap"><div class="pbar ${isShadow(p.provider)?'shadow':isAuth(p.provider)?'auth':'monitored'}" style="width:${Math.round(p.connections/maxC*100)}%"></div></div>
+        <div style="width:50px;text-align:right;color:#666;font-size:10px">${p.connections.toLocaleString()}</div>
+        <div style="width:60px;text-align:right;color:#444;font-size:10px">${fmtVol(p.bytes)}</div>
+      </div>`).join(''):'<div class="empty">No providers</div>';
+    const dept=document.getElementById('ex-filter-dept').value;
+    const sev=document.getElementById('ex-filter-sev').value;
+    let dlpUrl='/api/dlp/filter?limit=50';
+    if(dept) dlpUrl+=`&department=${encodeURIComponent(dept)}`;
+    if(sev) dlpUrl+=`&severity=${sev}`;
+    const dlp=await fetch(dlpUrl).then(r=>r.json());
+    document.getElementById('ex-dlp-list').innerHTML=dlp.length?
+      dlp.map(d=>`<div class="row">${sevBadge(d.severity)}
+        <span style="flex:1;color:#ccc">${d.pattern}</span>
+        <span style="color:#888">${d.department||''}</span>
+        <span style="color:#5dcaa5;margin-left:6px">${d.provider}</span>
+        ${d.compliance&&d.compliance!=='General Policy'?`<span class="compliance-tag">${d.compliance}</span>`:''}
+        <span style="color:#444;margin-left:6px;font-size:10px">${fmtTime(d.timestamp)}</span>
+      </div>`).join(''):'<div class="empty">No alerts</div>';
+    const depts=await fetch('/api/departments').then(r=>r.json());
+    await populateDepts(depts);
+  }catch(e){console.error(e);}
+}
+
+async function loadOperational(){
+  try{
+    const dept=document.getElementById('op-filter-dept').value;
+    const prov=document.getElementById('op-filter-prov').value;
+    let url='/api/events/filter?limit=200';
+    if(dept) url+=`&department=${encodeURIComponent(dept)}`;
+    let events=await fetch(url).then(r=>r.json());
+    if(prov) events=events.filter(e=>e.provider===prov);
+    document.getElementById('op-events').innerHTML=events.length?
+      events.slice(0,50).map(e=>`<div class="row">
+        <span style="color:#fff;font-weight:500;min-width:105px;font-family:monospace;font-size:10px">${e.src}</span>
+        <span style="color:#333">→</span>
+        <span style="color:#5dcaa5;min-width:80px">${e.provider}</span>
+        <span style="color:#b0b0b0;flex:1">${e.department||'—'}</span>
+        <span style="color:#666;font-size:10px">${fmtVol(e.size)}</span>
+        <span style="color:#555;font-size:10px;min-width:55px;text-align:right">${fmtTime(e.timestamp)}</span>
+      </div>`).join(''):'<div class="empty">No events</div>';
+    const ipC={},vlC={};
+    events.forEach(e=>{ipC[e.src]=(ipC[e.src]||0)+1;const v=e.department||'Unknown';vlC[v]=(vlC[v]||0)+1;});
+    const topIPs=Object.entries(ipC).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const mIP=topIPs[0]?.[1]||1;
+    document.getElementById('op-top-ips').innerHTML=topIPs.length?
+      topIPs.map(([ip,c])=>`<div class="row">
+        <div style="flex:1;font-family:monospace;font-size:10px;color:#ccc">${ip}</div>
+        <div class="pbar-wrap"><div class="pbar auth" style="width:${Math.round(c/mIP*100)}%"></div></div>
+        <div style="width:35px;text-align:right;color:#666;font-size:10px">${c}</div>
+      </div>`).join(''):'<div class="empty">No data</div>';
+    const topVl=Object.entries(vlC).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const mVl=topVl[0]?.[1]||1;
+    const vlHTML=topVl.map(([v,c])=>`<div class="row">
+      <div style="flex:1;font-size:10px;color:#ccc">${v}</div>
+      <div class="pbar-wrap"><div class="pbar auth" style="width:${Math.round(c/mVl*100)}%"></div></div>
+      <div style="width:35px;text-align:right;color:#666;font-size:10px">${c}</div>
+    </div>`).join('');
+    document.getElementById('op-vlans').innerHTML=topVl.length?vlHTML:'<div class="empty">No data</div>';
+    document.getElementById('ex-vlans').innerHTML=topVl.length?vlHTML:'<div class="empty">No data</div>';
+  }catch(e){console.error(e);}
+}
+
+async function loadHistorical(){
+  try{
+    const dept2=document.getElementById('hist-filter-dept2').value;
+    const prov=document.getElementById('hist-filter-prov').value;
+    let url='/api/events/filter?limit=5000';
+    if(dept2) url+=`&department=${encodeURIComponent(dept2)}`;
+    let all=await fetch(url).then(r=>r.json());
+    if(prov) all=all.filter(e=>e.provider===prov);
+    const dayMap={};
+    all.forEach(e=>{
+      const d=new Date(e.timestamp).toLocaleDateString();
+      if(!dayMap[d]) dayMap[d]={connections:0,bytes:0};
+      dayMap[d].connections++;dayMap[d].bytes+=e.size||0;
+    });
+    const days=Object.entries(dayMap).sort((a,b)=>new Date(a[0])-new Date(b[0])).slice(-7);
+    const maxD=Math.max(...days.map(d=>d[1].connections),1);
+    document.getElementById('hist-chart').innerHTML=days.length?
+      `<div class="hist-grid">${days.map(([d,v])=>`<div class="hist-day">
+        <div class="hist-day-label">${new Date(d).toLocaleDateString('en',{month:'short',day:'numeric'})}</div>
+        <div class="hist-day-val">${v.connections.toLocaleString()}</div>
+        <div style="margin:4px auto;width:${Math.round(v.connections/maxD*100)}%;max-width:40px;height:3px;background:#5dcaa5;border-radius:2px"></div>
+        <div style="font-size:9px;color:#666">${fmtVol(v.bytes)}</div>
+      </div>`).join('')}</div>`:'<div class="empty">No historical data yet</div>';
+    const provT={};
+    all.forEach(e=>{provT[e.provider]=(provT[e.provider]||0)+1;});
+    const topP=Object.entries(provT).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const mP=topP[0]?.[1]||1;
+    document.getElementById('hist-providers').innerHTML=topP.length?
+      topP.map(([p,c])=>`<div class="provider-row">
+        <div style="flex:1;font-weight:500;font-size:12px">${p}</div>${provBadge(p)}
+        <div class="pbar-wrap"><div class="pbar ${isShadow(p)?'shadow':'auth'}" style="width:${Math.round(c/mP*100)}%"></div></div>
+        <div style="width:50px;text-align:right;color:#666;font-size:10px">${c.toLocaleString()}</div>
+      </div>`).join(''):'<div class="empty">No data</div>';
+    document.getElementById('hist-events').innerHTML=all.length?
+      all.slice(0,100).map(e=>`<div class="row">
+        <span style="color:#fff;font-weight:500;min-width:105px;font-family:monospace;font-size:10px">${e.src}</span>
+        <span style="color:#333">→</span>
+        <span style="color:#5dcaa5;min-width:80px">${e.provider}</span>
+        <span style="color:#b0b0b0;flex:1">${e.department||'—'}</span>
+        <span style="color:#555;font-size:10px;min-width:130px;text-align:right">${fmtTS(e.timestamp)}</span>
+      </div>`).join(''):'<div class="empty">No events</div>';
+  }catch(e){console.error(e);}
+}
+
+function toCSV(rows,cols){
+  return[cols.join(','),...rows.map(r=>cols.map(c=>`"${(r[c]||'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
+}
+function dlCSV(content,filename){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:'text/csv'}));
+  a.download=filename;a.click();
+}
+async function exportDLP(){
+  const dept=document.getElementById('ex-filter-dept').value;
+  const sev=document.getElementById('ex-filter-sev').value;
+  let url='/api/dlp/filter?limit=100000';
+  if(dept) url+=`&department=${encodeURIComponent(dept)}`;
+  if(sev) url+=`&severity=${sev}`;
+  dlCSV(toCSV(await fetch(url).then(r=>r.json()),['timestamp','src','provider','severity','pattern','department','vlan_id','compliance']),
+    `aiguard_dlp_${new Date().toISOString().slice(0,10)}.csv`);
+}
+async function exportEvents(){
+  const dept=document.getElementById('op-filter-dept').value;
+  const prov=document.getElementById('op-filter-prov').value;
+  let url='/api/events/filter?limit=100000';
+  if(dept) url+=`&department=${encodeURIComponent(dept)}`;
+  let data=await fetch(url).then(r=>r.json());
+  if(prov) data=data.filter(e=>e.provider===prov);
+  dlCSV(toCSV(data,['timestamp','src','dst','provider','hostname','size','vlan_id','department']),
+    `aiguard_events_${new Date().toISOString().slice(0,10)}.csv`);
+}
+async function exportHistory(){
+  const dept=document.getElementById('hist-filter-dept2').value;
+  const prov=document.getElementById('hist-filter-prov').value;
+  let url='/api/events/filter?limit=100000';
+  if(dept) url+=`&department=${encodeURIComponent(dept)}`;
+  let data=await fetch(url).then(r=>r.json());
+  if(prov) data=data.filter(e=>e.provider===prov);
+  dlCSV(toCSV(data,['timestamp','src','dst','provider','hostname','size','vlan_id','department']),
+    `aiguard_history_${new Date().toISOString().slice(0,10)}.csv`);
+}
+async function openCopilot(){
+  const ctx=await fetch('/api/copilot-context').then(r=>r.json());
+  const ta=document.createElement('textarea');
+  ta.value=ctx.context;ta.style.cssText='position:fixed;top:0;left:0;opacity:0';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  document.execCommand('copy');document.body.removeChild(ta);
+  window.open('https://copilot.microsoft.com','_blank');
+}
+async function init(){await loadExecutive();await loadOperational();}
+init();
+setInterval(()=>{loadExecutive();loadOperational();},30000);
+</script>
+</body>
+</html>

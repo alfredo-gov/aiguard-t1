@@ -216,3 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# AIGuard local
+config.yaml
+data/
+*.db
+*.docx
+node_modules/
+venv/

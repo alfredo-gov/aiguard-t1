@@ -1,0 +1,173 @@
+# ============================================================================
+# AIGuard T1 — Configuration Template
+# ----------------------------------------------------------------------------
+# Copy this file to "config.yaml" and replace every YOUR_* placeholder with the
+# values for your environment:
+#
+#     cp config.yaml.example config.yaml
+#
+# config.yaml is excluded from version control (see .gitignore). Never commit a
+# filled-in config or any real credentials, internal addresses, or captured data.
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Organization & branding
+# Used in the dashboard header and in generated reports.
+# ----------------------------------------------------------------------------
+organization:
+  name: "YOUR_ORGANIZATION_NAME"          # e.g. "City of Example"
+  division: "YOUR_DIVISION"               # e.g. "IT / OT Division"
+  logo_path: ""                           # optional path to a PNG/SVG logo
+  brand_primary: "16243A"                 # hex, no '#'
+  brand_accent: "0E7490"                  # hex, no '#'
+
+# ----------------------------------------------------------------------------
+# Packet capture
+# The interface must receive a SPAN/mirror of the segment you want to observe.
+# ----------------------------------------------------------------------------
+capture:
+  interface: "YOUR_CAPTURE_INTERFACE"     # e.g. "enp1s0" or a USB NIC name
+  # Internal network prefixes (CIDR). Traffic sourced from these is attributed
+  # to internal users. Add one entry per monitored subnet.
+  network_prefixes:
+    - "YOUR_NETWORK_PREFIX"               # e.g. "10.0.0.0/16"
+  # Capture only DNS + TLS handshakes by default (lighter, DNS-only philosophy).
+  bpf_filter: "udp port 53 or (tcp port 443 and (tcp[((tcp[12:1] & 0xf0) >> 2)] = 22))"
+
+# ----------------------------------------------------------------------------
+# Event database (SQLite, WAL mode)
+# ----------------------------------------------------------------------------
+database:
+  path: "YOUR_DB_PATH"                    # e.g. "/home/aiguard/aiguard/data/events.db"
+
+# ----------------------------------------------------------------------------
+# Active Directory (optional) — used for department attribution.
+# Uses SIMPLE bind over LDAPS (port 636). A read-only service account is enough.
+# ----------------------------------------------------------------------------
+active_directory:
+  enabled: true
+  servers:
+    - "YOUR_DC_IP_1"                      # primary domain controller
+    - "YOUR_DC_IP_2"                      # secondary (optional)
+  port: 636
+  use_ssl: true                           # LDAPS
+  domain: "YOUR_DOMAIN_NAME"              # e.g. "example.local"
+  base_dn: "dc=YOUR_DC,dc=YOUR_DC,dc=YOUR_DC"
+  service_account: "YOUR_SERVICE_ACCOUNT" # read-only bind account (UPN or DN)
+  # SECURITY: do not store a real password here. Prefer an environment variable
+  # (e.g. AIGUARD_AD_PASSWORD) read by the application, or a secrets manager.
+  service_account_password: "YOUR_SERVICE_ACCOUNT_PASSWORD"
+
+# ----------------------------------------------------------------------------
+# VLAN -> department map
+# Maps a VLAN ID to a human-readable department for attribution and reporting.
+# ----------------------------------------------------------------------------
+vlan_map:
+  YOUR_VLAN_ID: "YOUR_DEPARTMENT_NAME"    # e.g. 10: "Finance"
+  # 20: "Police"
+  # 30: "Public Works"
+
+# ----------------------------------------------------------------------------
+# AI detection
+# DNS-only detection is the default and recommended mode. List ONLY hostnames
+# that unambiguously identify a specific AI service. Group them by confidence
+# tier so reporting can represent uncertainty honestly.
+# ----------------------------------------------------------------------------
+ai_detection:
+  mode: "dns_only"                        # dns_only | dns_and_sni
+
+  # Tier 1 — Confirmed: unambiguous, provider-specific AI hostnames.
+  confirmed:
+    microsoft_copilot:
+      - "copilot.microsoft.com"
+      - "copilot.cloud.microsoft"
+      - "ms-sso.copilot.microsoft.com"
+      - "sydney.bing.com"
+    openai:
+      - "chat.openai.com"
+      - "api.openai.com"
+    anthropic:
+      - "claude.ai"
+      - "api.anthropic.com"
+    google_gemini:
+      - "gemini.google.com"
+    huggingface:
+      - "huggingface.co"
+
+  # Tier 2 — Probable: AI-adjacent backends that also serve non-AI functions.
+  # Counting these as AI over-reports; excluding them under-reports. Track them
+  # separately so the ambiguity is visible rather than hidden.
+  probable: []
+    # - "gcc.augloop.svc.cloud.microsoft"
+
+  # Hostnames to explicitly ignore (shared infrastructure / known noise).
+  exclude:
+    - "substrate.svc.cloud.microsoft"
+
+# ----------------------------------------------------------------------------
+# DLP scanning
+# ----------------------------------------------------------------------------
+dlp:
+  enabled: true
+  # Add regex patterns for data you consider sensitive. Examples are generic;
+  # tune for your jurisdiction and data types.
+  patterns:
+    - name: "SSN"
+      regex: "\\b\\d{3}-\\d{2}-\\d{4}\\b"
+    - name: "CreditCard"
+      regex: "\\b(?:\\d[ -]*?){13,16}\\b"
+
+# ----------------------------------------------------------------------------
+# Traffic classification thresholds (payload size, bytes)
+# IMPORTANT: these tiers are EMPIRICALLY DERIVED from one production
+# environment. They are starting points, NOT industry standards. Re-baseline
+# against your own traffic before relying on them.
+# ----------------------------------------------------------------------------
+traffic_classification:
+  keepalive_max: 500          # < 500 B
+  small_event_max: 2000       # 500 B – 2 KB
+  active_session_min: 2000    # >= 2 KB
+  heavy_session_min: 50000    # >= 50 KB
+
+# ----------------------------------------------------------------------------
+# MDR / SIEM integration (optional) — syslog over UDP.
+# ----------------------------------------------------------------------------
+mdr_syslog:
+  enabled: false
+  host: "YOUR_MDR_SENSOR_IP"              # e.g. Arctic Wolf collector
+  port: 514
+  protocol: "udp"
+  # Send CRITICAL in real time; batch HIGH/MEDIUM into periodic digests to avoid
+  # overwhelming the NOC. Set the digest interval in minutes.
+  realtime_severities: ["CRITICAL"]
+  digest_severities: ["HIGH", "MEDIUM"]
+  digest_interval_minutes: 15
+
+# ----------------------------------------------------------------------------
+# Dashboard (FastAPI)
+# ----------------------------------------------------------------------------
+dashboard:
+  host: "0.0.0.0"
+  port: 8080
+
+# ----------------------------------------------------------------------------
+# Reports
+# Four audience-specific monthly DOCX reports. Email delivery is optional and
+# typically requires a dedicated service account (personal accounts with MFA
+# will not work for unattended SMTP).
+# ----------------------------------------------------------------------------
+reports:
+  output_dir: "./reports/output"
+  audiences:
+    it: ["YOUR_IT_RECIPIENT_EMAIL"]
+    legal: ["YOUR_LEGAL_RECIPIENT_EMAIL"]
+    records: ["YOUR_RECORDS_RECIPIENT_EMAIL"]
+    executive: ["YOUR_EXECUTIVE_RECIPIENT_EMAIL"]
+  email:
+    enabled: false
+    smtp_host: "YOUR_SMTP_HOST"           # e.g. smtp.office365.com
+    smtp_port: 587
+    smtp_user: "YOUR_SERVICE_ACCOUNT_EMAIL"
+    # SECURITY: prefer an environment variable for the password/secret.
+    smtp_password: "YOUR_SMTP_PASSWORD"
+    from_address: "YOUR_FROM_ADDRESS"
