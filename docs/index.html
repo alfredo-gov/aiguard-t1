@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIGuard T1 — Govern the AI you can't see</title>
+<meta name="description" content="A passive, open-source AI-traffic governance sensor for municipal governments and non-profits. DNS-based detection that is defensible for compliance and audit.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E1A2B; --ink-2:#16273D; --ink-line:rgba(255,255,255,.10);
+    --paper:#F6F8FA; --paper-2:#FFFFFF;
+    --text:#16232F; --muted:#5C6B7A;
+    --signal:#19C2B3; --signal-deep:#0B8E84; --noise:#8595A6;
+    --maxw:1100px;
+    --sans:"Space Grotesk",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --body:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--body);color:var(--text);background:var(--paper);line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+  .mono{font-family:var(--mono)}
+
+  /* ---------- nav ---------- */
+  .nav{background:var(--ink);color:#fff}
+  .nav .wrap{display:flex;align-items:center;justify-content:space-between;height:68px}
+  .brand{font-family:var(--mono);font-weight:600;letter-spacing:.16em;font-size:14px}
+  .brand b{color:var(--signal)}
+  .ghbtn{font-family:var(--mono);font-size:13px;border:1px solid var(--ink-line);
+    padding:9px 16px;border-radius:7px;color:#cfe;transition:.18s;white-space:nowrap}
+  .ghbtn:hover{border-color:var(--signal);color:#fff}
+  .ghbtn:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+
+  /* ---------- hero ---------- */
+  .hero{background:var(--ink);color:#fff;padding:74px 0 92px;position:relative;overflow:hidden}
+  .hero .wrap{position:relative;z-index:2}
+  .eyebrow{font-family:var(--mono);font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--signal);margin-bottom:22px}
+  h1{font-family:var(--sans);font-weight:700;font-size:clamp(40px,6.5vw,76px);line-height:1.02;letter-spacing:-.02em;max-width:14ch}
+  .lede{font-size:clamp(17px,2.1vw,21px);color:#AFC0D2;max-width:62ch;margin:26px 0 34px;line-height:1.55}
+  .cta-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .cta{font-family:var(--mono);font-weight:600;font-size:15px;background:var(--signal);color:#06231F;
+    padding:14px 26px;border-radius:8px;transition:.18s}
+  .cta:hover{background:#2DDDCD;transform:translateY(-1px)}
+  .cta:focus-visible{outline:2px solid #fff;outline-offset:3px}
+  .lic{font-family:var(--mono);font-size:13px;color:var(--noise)}
+
+  /* console signature */
+  .console{margin-top:54px;background:var(--ink-2);border:1px solid var(--ink-line);
+    border-radius:12px;overflow:hidden;max-width:760px;box-shadow:0 30px 60px -30px rgba(0,0,0,.7)}
+  .console-bar{display:flex;align-items:center;gap:8px;padding:13px 18px;border-bottom:1px solid var(--ink-line)}
+  .dot{width:11px;height:11px;border-radius:50%;background:#2c3e57}
+  .console-bar span{font-family:var(--mono);font-size:12px;color:var(--noise);margin-left:8px;letter-spacing:.05em}
+  .console-body{padding:22px 22px 26px;font-family:var(--mono);font-size:14.5px;line-height:2}
+  .ln{display:flex;gap:16px;white-space:nowrap}
+  .k{color:var(--noise);min-width:74px}
+  .v{color:#DCE8F2}
+  .v .host{color:#fff}
+  .shared{color:var(--noise)}
+  .verdict .v{color:var(--signal);font-weight:600}
+  .tag{display:inline-block;font-size:11px;letter-spacing:.12em;padding:2px 9px;border-radius:5px;
+    background:rgba(25,194,179,.14);color:var(--signal);border:1px solid rgba(25,194,179,.4);margin-left:6px}
+
+  /* ---------- noise -> signal band ---------- */
+  .band{background:var(--paper-2);border-bottom:1px solid #E7ECF1}
+  .band .wrap{padding:56px 28px;display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:center}
+  .nslabel{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .nsflow{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+  .nsnum{font-family:var(--mono);font-weight:600;line-height:1}
+  .nsnum .big{display:block;font-size:clamp(28px,4vw,42px)}
+  .noiseN .big{color:var(--noise);text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:rgba(133,149,166,.5)}
+  .signalN .big{color:var(--signal-deep)}
+  .nsnum small{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.1em}
+  .arrow{font-family:var(--mono);color:var(--signal-deep);font-size:26px;font-weight:600}
+  .nsclaim{font-size:18px;line-height:1.5}
+  .nsclaim b{font-family:var(--mono);color:var(--signal-deep)}
+
+  /* ---------- generic section ---------- */
+  section{padding:80px 0}
+  .sec-eyebrow{font-family:var(--mono);font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--signal-deep);margin-bottom:14px}
+  h2{font-family:var(--sans);font-weight:600;font-size:clamp(28px,3.6vw,40px);letter-spacing:-.015em;line-height:1.1;max-width:18ch}
+  .sec-lede{font-size:18px;color:var(--muted);max-width:64ch;margin-top:18px}
+
+  /* why DNS quote */
+  .why{background:var(--paper)}
+  .quote{margin-top:34px;border-left:3px solid var(--signal);padding:6px 0 6px 24px;
+    font-family:var(--sans);font-weight:500;font-size:clamp(20px,2.6vw,27px);line-height:1.35;max-width:24ch;color:var(--ink)}
+  .why-two{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:46px}
+  .why-card{background:var(--paper-2);border:1px solid #E7ECF1;border-radius:12px;padding:26px}
+  .why-card h3{font-family:var(--mono);font-size:13px;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-bottom:12px;text-transform:uppercase}
+  .why-card p{font-size:15.5px;color:var(--text)}
+  .why-card.bad h3{color:var(--noise)}
+  .why-card.good{border-color:rgba(25,194,179,.4)}
+  .why-card.good h3{color:var(--signal-deep)}
+
+  /* features */
+  .feat{background:var(--ink);color:#fff}
+  .feat .sec-eyebrow{color:var(--signal)}
+  .feat h2{color:#fff}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--ink-line);
+    border:1px solid var(--ink-line);border-radius:12px;overflow:hidden;margin-top:44px}
+  .cell{background:var(--ink);padding:28px 26px}
+  .cell .n{font-family:var(--mono);font-size:12px;color:var(--signal);letter-spacing:.1em}
+  .cell h3{font-family:var(--sans);font-weight:600;font-size:19px;margin:14px 0 8px}
+  .cell p{font-size:14.5px;color:#9fb1c4;line-height:1.55}
+
+  /* who */
+  .who .wrap{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+  .who-stats{display:flex;gap:40px;margin-top:30px;flex-wrap:wrap}
+  .stat .num{font-family:var(--mono);font-weight:600;font-size:clamp(30px,4vw,44px);color:var(--signal-deep);line-height:1}
+  .stat .lab{font-size:14px;color:var(--muted);margin-top:8px;max-width:20ch}
+  .pricecard{background:var(--ink);color:#fff;border-radius:14px;padding:34px}
+  .pricecard .pk{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--noise)}
+  .pricecard .pv{font-family:var(--mono);font-weight:600;font-size:clamp(26px,3.4vw,36px);color:#fff;margin:10px 0 4px}
+  .pricecard .pv em{color:var(--signal);font-style:normal}
+  .pricecard .pd{color:#AFC0D2;font-size:15px;margin-top:14px;line-height:1.5}
+
+  /* honesty note */
+  .honesty{background:var(--paper)}
+  .honesty .wrap{max-width:820px;text-align:center}
+  .honesty p{font-family:var(--sans);font-weight:500;font-size:clamp(20px,2.6vw,26px);line-height:1.4;color:var(--ink)}
+  .honesty p b{color:var(--signal-deep)}
+  .honesty small{display:block;margin-top:18px;font-size:15px;color:var(--muted);font-family:var(--body);font-weight:400;line-height:1.5}
+
+  /* footer */
+  footer{background:var(--ink);color:#fff;padding:60px 0 50px;border-top:1px solid var(--ink-line)}
+  .foot-top{display:flex;justify-content:space-between;gap:30px;flex-wrap:wrap;align-items:flex-start}
+  .foot-brand{font-family:var(--mono);font-weight:600;letter-spacing:.14em}
+  .foot-brand b{color:var(--signal)}
+  .foot-brand p{font-family:var(--body);font-weight:400;letter-spacing:normal;color:var(--noise);font-size:14px;margin-top:12px;max-width:42ch;line-height:1.55}
+  .foot-links{display:flex;gap:26px;font-family:var(--mono);font-size:14px}
+  .foot-links a{color:#cfe;transition:.16s}
+  .foot-links a:hover{color:var(--signal)}
+  .foot-meta{margin-top:40px;padding-top:22px;border-top:1px solid var(--ink-line);
+    font-family:var(--mono);font-size:12.5px;color:var(--noise);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+  /* motion */
+  .rise{opacity:0;transform:translateY(16px);animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
+  .d1{animation-delay:.05s}.d2{animation-delay:.14s}.d3{animation-delay:.23s}.d4{animation-delay:.32s}
+  @keyframes rise{to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.rise{animation:none;opacity:1;transform:none}}
+
+  /* responsive */
+  @media (max-width:780px){
+    .band .wrap,.why-two,.grid,.who .wrap{grid-template-columns:1fr}
+    .grid{gap:1px}
+    .console-body{font-size:12.5px}
+    .ln{white-space:normal}
+    section{padding:60px 0}
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <div class="brand">AI<b>GUARD</b> T1</div>
+    <a class="ghbtn" href="https://github.com/alfredo-gov/aiguard-t1">View on GitHub ↗</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow rise d1">Passive · DNS-based · Open source</div>
+    <h1 class="rise d1">Govern the AI you can't see.</h1>
+    <p class="lede rise d2">AIGuard T1 is a passive sensor that detects AI usage on your network through DNS — the one signal that proves a person <em>meant</em> to use it. Built for the governments and non-profits that can't buy their way to visibility.</p>
+    <div class="cta-row rise d3">
+      <a class="cta" href="https://github.com/alfredo-gov/aiguard-t1">Get it on GitHub</a>
+      <span class="lic">Apache-2.0 · runs on one workstation</span>
+    </div>
+
+    <div class="console rise d4" role="img" aria-label="A DNS query for copilot.microsoft.com resolving to shared Microsoft infrastructure, classified as a confirmed AI access.">
+      <div class="console-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>aiguard · detection event</span></div>
+      <div class="console-body">
+        <div class="ln"><span class="k">query</span><span class="v"><span class="host">copilot.microsoft.com</span></span></div>
+        <div class="ln"><span class="k">resolve</span><span class="v">13.107.x.x <span class="shared">— shared: Copilot · Teams · Outlook · SharePoint</span></span></div>
+        <div class="ln"><span class="k">method</span><span class="v">DNS hostname <span class="shared">— intent, not just connectivity</span></span></div>
+        <div class="ln verdict"><span class="k">verdict</span><span class="v">CONFIRMED AI<span class="tag">AUDIT-DEFENSIBLE</span></span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="band">
+  <div class="wrap">
+    <div>
+      <div class="nslabel">From noise to signal — measured in production</div>
+      <div class="nsflow">
+        <div class="nsnum noiseN"><span class="big">13,700,000</span><small>IP-BASED</small></div>
+        <div class="arrow">→</div>
+        <div class="nsnum signalN"><span class="big">501,017</span><small>DNS-ONLY</small></div>
+      </div>
+    </div>
+    <div class="nsclaim">
+      Switching from IP-based to DNS-based detection removed <b>96–99%</b> of false positives across major providers — and cut the sensor's memory footprint by <b>58×</b>.
+    </div>
+  </div>
+</div>
+
+<section class="why">
+  <div class="wrap">
+    <div class="sec-eyebrow">Why DNS</div>
+    <h2>IP addresses lie. DNS tells you what a person intended.</h2>
+    <p class="sec-lede">AI providers run on shared cloud infrastructure. A single Microsoft IP range carries Copilot, Teams, Outlook, and SharePoint at once — so flagging traffic by IP flags everything. The DNS query that precedes the connection is different: it names the service a user actually asked for.</p>
+    <blockquote class="quote">"DNS proves intent. IP only proves a packet reached shared infrastructure."</blockquote>
+    <div class="why-two">
+      <div class="why-card bad">
+        <h3>IP-based detection</h3>
+        <p>Keys on destination IP ranges. Because providers share cloud infrastructure with general services, it produces false-positive rates above 96% — noise that can't support a compliance claim.</p>
+      </div>
+      <div class="why-card good">
+        <h3>DNS-only detection</h3>
+        <p>Keys on the resolved hostname. Each detection is evidence that a user or app intended to reach a specific AI service — an artifact you can defend in an audit.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="feat">
+  <div class="wrap">
+    <div class="sec-eyebrow">What it does</div>
+    <h2>A full governance picture, from one passive sensor.</h2>
+    <div class="grid">
+      <div class="cell"><div class="n">01</div><h3>AI detection</h3><p>Identifies confirmed AI service access through DNS hostname resolution, with optional SNI correlation.</p></div>
+      <div class="cell"><div class="n">02</div><h3>DLP scanning</h3><p>Flags potential data-loss events in monitored traffic against patterns you define.</p></div>
+      <div class="cell"><div class="n">03</div><h3>Unit attribution</h3><p>Maps activity to departments or units via VLAN mapping and Active Directory.</p></div>
+      <div class="cell"><div class="n">04</div><h3>Web dashboard</h3><p>Executive, operational, and historical views with filters and CSV export.</p></div>
+      <div class="cell"><div class="n">05</div><h3>Monthly reports</h3><p>Audience-specific DOCX reports for IT, Legal/Compliance, Records, and Executive readers.</p></div>
+      <div class="cell"><div class="n">06</div><h3>MDR / SIEM feed</h3><p>Optional syslog integration with severity-based filtering for tools like Arctic Wolf.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="who">
+  <div class="wrap">
+    <div>
+      <div class="sec-eyebrow">Who it's for</div>
+      <h2>Visibility for the organizations priced out of it.</h2>
+      <p class="sec-lede">Public agencies and non-profits carry real obligations to know what AI they run — under frameworks like the NIST AI RMF and, for public agencies, laws such as Texas's TRAIGA. Most can't afford enterprise tooling to meet them.</p>
+      <div class="who-stats">
+        <div class="stat"><div class="num">~19,500</div><div class="lab">U.S. municipal governments</div></div>
+        <div class="stat"><div class="num">1M+</div><div class="lab">U.S. non-profit organizations</div></div>
+      </div>
+    </div>
+    <div class="pricecard">
+      <div class="pk">What it replaces</div>
+      <div class="pv"><em>$50K–$200K+</em>/yr</div>
+      <div class="pk">typical SASE / CASB cost</div>
+      <p class="pd">AIGuard T1 runs on a single repurposed workstation, carries no licensing cost, and is configurable by an IT generalist without writing code.</p>
+    </div>
+  </div>
+</section>
+
+<section class="honesty">
+  <div class="wrap">
+    <p>AIGuard reports <b>confirmed</b> AI access — not a complete inventory. It says so plainly.</p>
+    <small>Encrypted DNS, browser-embedded AI, and on-device models can leave no network signature. AIGuard is one tier of a layered approach, and an inventory that acknowledges its own limits is the only kind that corresponds to reality.</small>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="foot-brand">AI<b>GUARD</b> T1
+        <p>A passive AI-traffic governance sensor for municipal governments and non-profit organizations.</p>
+      </div>
+      <div class="foot-links">
+        <a href="https://github.com/alfredo-gov/aiguard-t1">GitHub</a>
+        <a href="https://github.com/alfredo-gov/aiguard-t1#readme">Docs</a>
+        <a href="https://github.com/alfredo-gov/aiguard-t1/blob/main/LICENSE">License</a>
+      </div>
+    </div>
+    <div class="foot-meta">
+      <span>Apache-2.0 · Built in production at a U.S. municipality</span>
+      <span>Created &amp; maintained by Alfredo Prieto</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
