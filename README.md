@@ -10,8 +10,8 @@
 AIGuard T1 passively observes a mirrored copy of network traffic and produces a
 governance-defensible record of artificial-intelligence service usage on an
 organization's network. It was built to give resource-constrained organizations
-— local governments and non-profits that cannot afford enterprise SASE/CASB
-platforms — a practical, low-cost way to meet the AI-inventory and oversight
+- local governments and non-profits that cannot afford enterprise SASE/CASB
+platforms - a practical, low-cost way to meet the AI-inventory and oversight
 expectations of frameworks such as the **NIST AI Risk Management Framework**
 (and, for public agencies, laws such as the **Texas Responsible AI Governance
 Act, TRAIGA**).
@@ -28,7 +28,7 @@ There are roughly 19,500 mostly small and mid-size municipal governments in the
 United States, and well over a million non-profit organizations. Both sectors
 are chronically under-resourced in IT, both increasingly handle sensitive data
 through AI-enabled tools, and both are largely priced out of commercial
-AI-visibility tooling — SASE/CASB platforms typically cost $50,000–$200,000+ per
+AI-visibility tooling - SASE/CASB platforms typically cost $50,000–$200,000+ per
 year.
 
 Yet both carry real obligations to know what AI systems they operate: statutory
@@ -44,7 +44,7 @@ and is configurable by an IT generalist without writing code.
 
 The core design decision in AIGuard T1 is **DNS-based detection**.
 
-The intuitive approach — flagging traffic by destination IP range — fails in
+The intuitive approach — flagging traffic by destination IP range - fails in
 modern cloud environments because AI providers share infrastructure with
 general-purpose services. A single Microsoft IP range, for example, carries
 Copilot, Teams, Outlook, and SharePoint traffic simultaneously; Google, AWS, and
@@ -54,7 +54,7 @@ high false-positive rates and is **not defensible for compliance or audit**.
 AIGuard T1 instead keys detection on the **DNS resolution** that precedes a
 connection. A query for a specific, unambiguous AI hostname (for example
 `copilot.microsoft.com` or `claude.ai`) is evidence that a user or application
-*intended* to reach that service — not merely that a packet reached shared cloud
+*intended* to reach that service - not merely that a packet reached shared cloud
 infrastructure. This makes each detection an artifact you can defend in a
 governance review.
 
