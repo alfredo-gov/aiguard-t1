@@ -61,6 +61,12 @@ AI_HOSTNAMES = {
     "you.com": "you_ai",
     "poe.com": "poe",
     "character.ai": "character_ai",
+    "api.deepseek.com": "deepseek", "platform.deepseek.com": "deepseek",
+    "tryfusion.ai": "fusion", "app.tryfusion.ai": "fusion",
+    "sora.com": "sora",
+    "suno.com": "suno",
+    "midjourney.com": "midjourney", "www.midjourney.com": "midjourney",
+    "sara2.io": "sara2", "www.sara2.io": "sara2", "nanobana.net": "sara2",
 }
 
 AI_IP_PREFIXES = {
@@ -446,7 +452,7 @@ def process_packet(pkt):
 
 
 if __name__ == "__main__":
-    print("[AIGuard] Starting packet collector v8")
+    print("[AIGuard] Starting packet collector v12")
     print(f"[AIGuard] Monitoring {len(AI_HOSTNAMES)} AI hostnames")
     print(f"[AIGuard] VLAN awareness: {len(VLAN_MAP)} VLANs configured")
     print(f"[AIGuard] Arctic Wolf: CRITICAL=real-time | HIGH=digest/{AW_BATCH_INTERVAL//60}min | MEDIUM=local only")
